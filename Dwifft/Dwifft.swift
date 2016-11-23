@@ -17,10 +17,10 @@ public struct Diff<T> {
     public func reversed() -> Diff<T> {
         let reversedResults = self.results.reverse().map { (result: DiffStep<T>) -> DiffStep<T> in
             switch result {
-            case .Insert(let i, let j):
-                return .Delete(i, j)
-            case .Delete(let i, let j):
-                return .Insert(i, j)
+            case .insert(let i, let j):
+                return .delete(i, j)
+            case .delete(let i, let j):
+                return .insert(i, j)
             }
         }
         return Diff<T>(results: reversedResults)
@@ -33,37 +33,37 @@ public func +<T> (left: Diff<T>, right: DiffStep<T>) -> Diff<T> {
 
 /// These get returned from calls to Array.diff(). They represent insertions or deletions that need to happen to transform array a into array b.
 public enum DiffStep<T> : CustomDebugStringConvertible {
-    case Insert(Int, T)
-    case Delete(Int, T)
+    case insert(Int, T)
+    case delete(Int, T)
     var isInsertion: Bool {
         switch(self) {
-        case .Insert:
+        case .insert:
             return true
-        case .Delete:
+        case .delete:
             return false
         }
     }
     public var debugDescription: String {
         switch(self) {
-        case .Insert(let i, let j):
+        case .insert(let i, let j):
             return "+\(j)@\(i)"
-        case .Delete(let i, let j):
+        case .delete(let i, let j):
             return "-\(j)@\(i)"
         }
     }
     public var idx: Int {
         switch(self) {
-        case .Insert(let i, _):
+        case .insert(let i, _):
             return i
-        case .Delete(let i, _):
+        case .delete(let i, _):
             return i
         }
     }
     public var value: T {
         switch(self) {
-        case .Insert(let j):
+        case .insert(let j):
             return j.1
-        case .Delete(let j):
+        case .delete(let j):
             return j.1
         }
     }
@@ -82,13 +82,13 @@ public extension Array where Element: Equatable {
         if i == 0 && j == 0 {
             return Diff<Element>(results: [])
         } else if i == 0 {
-            return diffFromIndices(table, x, y, i, j-1) + DiffStep.Insert(j-1, y[j-1])
+            return diffFromIndices(table, x, y, i, j-1) + DiffStep.insert(j-1, y[j-1])
         } else if j == 0 {
-            return diffFromIndices(table, x, y, i - 1, j) + DiffStep.Delete(i-1, x[i-1])
+            return diffFromIndices(table, x, y, i - 1, j) + DiffStep.delete(i-1, x[i-1])
         } else if table[i][j] == table[i][j-1] {
-            return diffFromIndices(table, x, y, i, j-1) + DiffStep.Insert(j-1, y[j-1])
+            return diffFromIndices(table, x, y, i, j-1) + DiffStep.insert(j-1, y[j-1])
         } else if table[i][j] == table[i-1][j] {
-            return diffFromIndices(table, x, y, i - 1, j) + DiffStep.Delete(i-1, x[i-1])
+            return diffFromIndices(table, x, y, i - 1, j) + DiffStep.delete(i-1, x[i-1])
         } else {
             return diffFromIndices(table, x, y, i-1, j-1)
         }
@@ -119,12 +119,8 @@ public extension Array where Element: Equatable {
     
     /// Walks back through the generated table to generate the LCS.
     private static func lcsFromIndices(table: [[Int]], _ x: [Element], _ y: [Element], _ i: Int, _ j: Int) -> [Element] {
-        if i == 0 && j == 0 {
+        if i == 0 || j == 0 {
             return []
-        } else if i == 0 {
-            return lcsFromIndices(table, x, y, i, j - 1)
-        } else if j == 0 {
-            return lcsFromIndices(table, x, y, i - 1, j)
         } else if x[i-1] == y[j-1] {
             return lcsFromIndices(table, x, y, i - 1, j - 1) + [x[i - 1]]
         } else if table[i-1][j] > table[i][j-1] {
